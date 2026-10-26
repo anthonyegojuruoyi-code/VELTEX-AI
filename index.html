@@ -270,10 +270,11 @@ th{color:var(--muted);font-weight:500}
   <div class="card">
     <button class="close" data-close="adLogin" aria-label="Close">✕</button>
     <h2>Admin login</h2>
-    <div class="field"><label for="admEmail">Admin email</label><input id="admEmail" type="email" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false"></div>
-    <div class="field"><label for="admPass">Password</label><input id="admPass" type="password" autocomplete="current-password" autocapitalize="none" autocorrect="off" spellcheck="false"></div>
+    <div class="field"><label for="admEmail">Admin email</label><input id="admEmail" type="email" autocomplete="off" autocapitalize="none" autocorrect="off" spellcheck="false"></div>
+    <div class="field"><label for="admPass">Password</label><input id="admPass" type="password" autocomplete="new-password" autocapitalize="none" autocorrect="off" spellcheck="false"></div>
     <label style="display:flex;gap:8px;align-items:center"><input type="checkbox" class="showpw" data-for="admPass" style="width:auto"> Show password</label>
     <button class="btn" id="admGo">Log in</button>
+    <p class="sub" style="font-size:11px;color:var(--muted)">App version 2026-10-26.3</p>
   </div>
 </div>
 
@@ -1050,7 +1051,10 @@ function showAdminLogin() {
   $("#admPass").value = ""; $("#adLogin").classList.remove("hidden"); $("#admEmail").focus();
 }
 async function adminLogin() {
-  try { if ($("#admEmail").value.trim().toLowerCase() !== CONFIG.adminEmail || await sha($("#admPass").value.trim()) !== CONFIG.adminHash) return toast("Wrong email or password."); }
+  try {
+    if ($("#admEmail").value.trim().toLowerCase() !== CONFIG.adminEmail) return toast("Wrong admin email. Use the admin email, not your Google account.");
+    if (await sha($("#admPass").value.trim()) !== CONFIG.adminHash) return toast("Wrong password. Tick Show password and check each letter.");
+  }
   catch { return toast("Admin login failed. Reload the page and try again."); }
   sess.set("vx_admin", "1"); $("#adLogin").classList.add("hidden"); renderUser(); openAdmin();
 }
