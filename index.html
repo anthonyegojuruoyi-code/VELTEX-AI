@@ -112,6 +112,8 @@ input:focus,textarea:focus,select:focus{border-color:var(--cyan)}
 .att span{position:absolute;left:4px;bottom:3px;font-size:10px;background:rgba(0,0,0,.65);border-radius:4px;padding:0 4px}
 #topNew{border:1px solid var(--line);background:var(--panel2);border-radius:99px;padding:6px 14px;font-size:13px;font-weight:600}
 .topr{display:flex;gap:8px;align-items:center}
+.copy.b2{right:62px}.copy.b3{right:130px}
+.clip{margin-top:10px}.clip small{color:var(--muted);font-size:12px;display:block;margin-top:4px}
 .note{max-width:760px;margin:6px auto 0;text-align:center;font-size:11px;color:var(--muted)}
 
 /* Modals */
@@ -203,9 +205,12 @@ th{color:var(--muted);font-weight:500}
             <button class="chip" data-mode="chat">Chat</button>
             <button class="chip" data-mode="image">Image</button>
             <button class="chip" data-mode="video">Video</button>
+            <button class="chip" data-mode="movie">Movie</button>
+            <button class="chip" data-mode="business">Business idea</button>
             <button class="chip" data-mode="prompt">Prompt</button>
             <button class="chip" data-mode="app">Build app</button>
             <button class="chip" id="voiceChip">Voice replies</button>
+            <button class="chip" id="provChip">AI: Claude</button>
           </div>
           <div class="right"><button class="mic" id="attBtn" aria-label="Attach picture or video">📎</button><button class="mic" id="mic" aria-label="Speak">🎤</button><button id="send" aria-label="Send">↑</button></div>
         </div>
@@ -220,25 +225,32 @@ th{color:var(--muted);font-weight:500}
 <div id="upModal" class="modal hidden">
   <div class="card">
     <button class="close" data-close="upModal" aria-label="Close">✕</button>
-    <h2>VELTEX Premium</h2>
+    <h2>Choose your plan</h2>
+    <div class="tabs" style="justify-content:center">
+      <button class="chip on" data-plan="premium">Premium</button>
+      <button class="chip" data-plan="movie">Movie</button>
+    </div>
     <div class="price"><span id="upPrice">3,000</span> <small>per month</small></div>
-    <ul class="perks">
-      <li>Unlimited messages</li>
-      <li>Image, video and person-in-scene generation</li>
-      <li>App builder</li>
-      <li>Priority speed</li>
-    </ul>
+    <ul class="perks" id="upPerks"></ul>
     <div>
       <label>Send payment to</label>
       <div class="dep" id="upDeposit"></div>
     </div>
     <div class="field"><label for="payRef">Payment reference or sender name</label><input id="payRef" placeholder="e.g. transfer reference"></div>
     <button class="btn" id="paidBtn">I have paid</button>
-    <p class="sub" style="font-size:12px;color:var(--muted);text-align:center">Premium turns on for 30 days once the payment is confirmed. Renew each month to stay Premium.</p>
+    <p class="sub" style="font-size:12px;color:var(--muted);text-align:center">Your plan turns on for 30 days once the payment is confirmed. Renew each month to keep it.</p>
   </div>
 </div>
 
 <!-- Invite modal -->
+<!-- App preview -->
+<div id="prevModal" class="modal wide hidden">
+  <div class="card" style="height:88vh">
+    <button class="close" data-close="prevModal" aria-label="Close">✕</button>
+    <iframe id="prevFrame" sandbox="allow-scripts allow-forms allow-modals allow-popups" style="flex:1;width:100%;border:0;border-radius:12px;background:#fff"></iframe>
+  </div>
+</div>
+
 <div id="invModal" class="modal hidden">
   <div class="card">
     <button class="close" data-close="invModal" aria-label="Close">✕</button>
@@ -274,7 +286,9 @@ th{color:var(--muted);font-weight:500}
       <button class="chip on" data-tab="pay">Payments</button>
       <button class="chip" data-tab="dep">Deposit details</button>
       <button class="chip" data-tab="usr">Users</button>
+      <button class="chip" data-tab="lim">Limits</button>
       <button class="chip" data-tab="api">Connections</button>
+      <button class="chip" data-tab="srv">Server files</button>
       <button class="chip" id="lockAdmin">Log out</button>
     </div>
     <div id="tab-pay"></div>
@@ -283,15 +297,27 @@ th{color:var(--muted);font-weight:500}
       <div class="field" style="margin-top:10px"><label>Account number</label><input id="dNum" inputmode="numeric"></div>
       <div class="field" style="margin-top:10px"><label>Account name</label><input id="dName"></div>
       <div class="field" style="margin-top:10px"><label>Extra instructions</label><textarea id="dNote" rows="2"></textarea></div>
-      <div class="field" style="margin-top:10px"><label>Monthly price</label><input id="dPrice" inputmode="numeric"></div>
-      <div class="field" style="margin-top:10px"><label>Free messages per day</label><input id="dLimit" inputmode="numeric"></div>
+      <div class="field" style="margin-top:10px"><label>Premium price per month</label><input id="dPrice" inputmode="numeric"></div>
       <button class="btn" id="saveDep" style="margin-top:12px">Save changes</button>
     </div>
+    <div id="tab-lim" class="hidden">
+      <p class="sub" style="color:var(--muted);font-size:13px;margin-bottom:10px">What each plan gets. Type 9999 for no limit, 0 for not included. The admin account always uses everything free.</p>
+      <div id="limBox"></div>
+      <div class="field" style="margin-top:12px"><label>Movie plan price per month</label><input id="limMovie" inputmode="numeric"></div>
+      <button class="btn" id="saveLim" style="margin-top:12px">Save limits</button>
+    </div>
     <div id="tab-usr" class="hidden"></div>
+    <div id="tab-srv" class="hidden">
+      <p class="sub" style="color:var(--muted);font-size:13px;margin-bottom:10px">These 4 files make the AI, images and video work. On GitHub tap Add file > Create new file, type the file name exactly as shown, paste the code, and tap Commit. Then add your keys in Netlify and redeploy.</p>
+      <div class="field" style="margin-bottom:14px"><label>File name: <b style="color:var(--cyan)">netlify.toml</b></label><textarea id="src-toml" rows="5" readonly style="font-family:ui-monospace,Menlo,monospace;font-size:11px"></textarea><button class="btn sm ghost" data-copysrc="toml" style="margin-top:6px">Copy netlify.toml</button></div>
+      <div class="field" style="margin-bottom:14px"><label>File name: <b style="color:var(--cyan)">netlify/edge-functions/chat.js</b></label><textarea id="src-chat" rows="5" readonly style="font-family:ui-monospace,Menlo,monospace;font-size:11px"></textarea><button class="btn sm ghost" data-copysrc="chat" style="margin-top:6px">Copy chat.js</button></div>
+      <div class="field" style="margin-bottom:14px"><label>File name: <b style="color:var(--cyan)">netlify/edge-functions/image.js</b></label><textarea id="src-image" rows="5" readonly style="font-family:ui-monospace,Menlo,monospace;font-size:11px"></textarea><button class="btn sm ghost" data-copysrc="image" style="margin-top:6px">Copy image.js</button></div>
+      <div class="field" style="margin-bottom:14px"><label>File name: <b style="color:var(--cyan)">netlify/edge-functions/video.js</b></label><textarea id="src-video" rows="5" readonly style="font-family:ui-monospace,Menlo,monospace;font-size:11px"></textarea><button class="btn sm ghost" data-copysrc="video" style="margin-top:6px">Copy video.js</button></div>
+    </div>
     <div id="tab-api" class="hidden">
-      <p class="sub" style="color:var(--muted);font-size:13px;margin-bottom:10px">Optional. Leave both empty to use the built-in assistant. Add addresses later if you connect a full AI or a video service.</p>
-      <div class="field"><label>Chat endpoint</label><input id="cChat" placeholder="https://your-worker.workers.dev/chat"></div>
-      <div class="field" style="margin-top:10px"><label>Media endpoint (image, video)</label><input id="cMedia" placeholder="https://your-worker.workers.dev/media"></div>
+      <p class="sub" style="color:var(--muted);font-size:13px;margin-bottom:10px">Your AI and image servers run on your Netlify site (/api/chat and /api/image). Keys are kept in Netlify settings, never in this page. Change these addresses only if you move servers.</p>
+      <div class="field"><label>Chat endpoint</label><input id="cChat" placeholder="/api/chat"></div>
+      <div class="field" style="margin-top:10px"><label>Media endpoint (image, video)</label><input id="cMedia" placeholder="/api/image"></div>
       <div class="field" style="margin-top:10px"><label>Google Client ID (for "Continue with Google")</label><input id="cGoogle" placeholder="123456-abc.apps.googleusercontent.com" autocapitalize="none" spellcheck="false"></div>
       <button class="btn" id="saveApi" style="margin-top:12px">Save changes</button>
     </div>
@@ -307,13 +333,19 @@ document.getElementById("fav").href = LOGO;
 const CONFIG = {
   // Admin password is stored as a hash. Open your site address followed by #admin to log in.
   adminEmail: "veltexglobalapp@gmail.com",
-  adminHash: "ddb11c8dee8125ea4834c52d33ba51435be6bf9e97bcfd7c7192a01b41602636",
+  adminHash: "fd29e4b6d5dd9a1672645050d6f68cc870024e0fa996b58e26a78d955f6c088a",
   defaults: {
-    chatEndpoint: "",   // optional: a server for a full AI. Leave empty to use the built-in assistant
-    mediaEndpoint: "",  // optional: a server for image/video creation
+    chatEndpoint: "/api/chat",   // your Netlify AI server (Claude and Grok)
+    mediaEndpoint: "/api/image",  // your Netlify image server
     googleClientId: "330346630339-i3sffhcrl7tl1g1iesos00abrdnrbqiv.apps.googleusercontent.com",  // from Google Cloud Console (set in Admin > Connections)
     price: 3000,
-    freePerDay: 10,
+    videoEndpoint: "/api/video",  // your Netlify video server
+    moviePrice: 10000,            // Movie plan price per month (admin can change)
+    limits: {                     // 9999 = no limit
+      free:    { msgs: 10,   images: 0,  scenes: 0,  maxScenes: 0 },
+      premium: { msgs: 9999, images: 20, scenes: 0,  maxScenes: 0 },
+      movie:   { msgs: 9999, images: 50, scenes: 30, maxScenes: 8 }
+    },
     deposit: { bank: "", number: "", name: "", note: "" }
   },
   owner: "Nnaemeka Chiagozie Cyprian",
@@ -322,7 +354,8 @@ const CONFIG = {
     "You are VELTEX AI, a helpful, honest, multimodal assistant made by VELTEX GLOBAL. " +
     "Facts about VELTEX GLOBAL: the founder is Nnaemeka Chiagozie Cyprian, known as CN-VELTEX. The co-founder is Nnaemeka Chinoso Celestine, known as Nonsvile. " +
     "When asked about the founder, name only the founder. When asked about the co-founder, name only the co-founder. " +
-    "Answer clearly, write working code when asked, and format code in fenced blocks."
+    "You can answer questions on any topic in the world, and you use live web search results when they are provided. " +
+    "Answer clearly and honestly. When asked to build an app, build a real, complete, working one. Format code in fenced blocks."
 };
 
 /* ============ STORAGE ============ */
@@ -337,6 +370,9 @@ const load = (k, d) => { try { const v = JSON.parse(rawGet(k)); return v ?? d; }
 const save = (k, v) => { try { rawSet(k, JSON.stringify(v)); } catch (e) { toast("Storage is full. Delete some old chats."); } };
 const settings = () => {
   const s = { ...CONFIG.defaults, ...load("vx_settings", {}), deposit: { ...CONFIG.defaults.deposit, ...(load("vx_settings", {}).deposit || {}) } };
+  const sv = load("vx_settings", {});
+  s.limits = {}; for (const k of ["free", "premium", "movie"]) s.limits[k] = { ...CONFIG.defaults.limits[k], ...((sv.limits || {})[k] || {}) };
+  if (!s.videoEndpoint) s.videoEndpoint = CONFIG.defaults.videoEndpoint;
   if (!s.chatEndpoint) s.chatEndpoint = CONFIG.defaults.chatEndpoint;
   if (!s.mediaEndpoint) s.mediaEndpoint = CONFIG.defaults.mediaEndpoint;
   return s;
@@ -350,7 +386,39 @@ let busy = false;
 const esc = s => s.replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const today = () => new Date().toISOString().slice(0, 10);
 const money = n => Number(n).toLocaleString();
-const isPremium = () => user && user.premiumUntil && user.premiumUntil > Date.now();
+const isAdmin = () => sess.get("vx_admin") === "1" || (!!user && !!user.google && user.email === CONFIG.adminEmail);
+function planOf() {
+  if (isAdmin()) return "admin";
+  if (user && user.movieUntil > Date.now()) return "movie";
+  if (user && user.premiumUntil > Date.now()) return "premium";
+  return "free";
+}
+const isPremium = () => planOf() !== "free";
+const PLAN_NAME = { free: "Free", premium: "Premium", movie: "Movie", admin: "Admin" };
+const limitsOf = plan => plan === "admin" ? { msgs: 9999, images: 9999, scenes: 9999, maxScenes: 20 } : settings().limits[plan];
+function useNow() {
+  const d = today(), m = d.slice(0, 7), u = user.use || {};
+  if (u.day !== d) { u.day = d; u.msgs = 0; u.images = 0; }
+  if (u.month !== m) { u.month = m; u.scenes = 0; }
+  user.use = u; return u;
+}
+function bump(k, n = 1) { if (planOf() === "admin") return; useNow()[k] += n; persistUser(); renderUser(); }
+// Checks the plan limits. Returns true when the action is allowed.
+function gate(kind) {
+  const plan = planOf(); if (plan === "admin") return true;
+  const L = limitsOf(plan), u = useNow();
+  if (kind === "msg") { if (u.msgs >= L.msgs) { toast("You used today's messages."); openUpgrade("premium"); return false; } return true; }
+  if (kind === "image") {
+    if (L.images <= 0) { toast("Images need a paid plan."); openUpgrade("premium"); return false; }
+    if (u.images >= L.images) { toast("You used today's images."); return false; } return true;
+  }
+  if (kind === "app") { if (plan === "free") { toast("The app builder needs a paid plan."); openUpgrade("premium"); return false; } return true; }
+  if (kind === "video") {
+    if (L.maxScenes <= 0) { toast("Video and movies need the Movie plan."); openUpgrade("movie"); return false; }
+    if (u.scenes >= L.scenes) { toast("You used this month's video scenes."); return false; } return true;
+  }
+  return true;
+}
 
 function toast(t) {
   const d = document.createElement("div");
@@ -450,17 +518,19 @@ function enterApp() {
 function renderUser() {
   if (!user) return;
   $("#uName").textContent = user.name;
-  const p = isPremium();
-  for (const el of [$("#uPlan"), $("#topPlan")]) { el.textContent = p ? "Premium" : "Free"; el.classList.toggle("pro", p); }
-  if (p) {
-    const days = Math.ceil((user.premiumUntil - Date.now()) / 864e5);
-    $("#uInfo").textContent = `Premium renews in ${days} day${days === 1 ? "" : "s"}`;
-    $("#upgradeBtn").textContent = "Renew Premium";
-  } else {
-    const left = Math.max(0, settings().freePerDay - (user.usage[today()] || 0));
-    $("#uInfo").textContent = `${left} free message${left === 1 ? "" : "s"} left today`;
-    $("#upgradeBtn").textContent = "Upgrade to Premium";
+  const plan = planOf(), L = limitsOf(plan), u = useNow();
+  for (const el of [$("#uPlan"), $("#topPlan")]) { el.textContent = PLAN_NAME[plan]; el.classList.toggle("pro", plan !== "free"); }
+  const left = (cap, used) => cap >= 9999 ? "Unlimited" : Math.max(0, cap - used);
+  if (plan === "admin") $("#uInfo").textContent = "Admin: everything is free and unlimited";
+  else {
+    const parts = [L.msgs >= 9999 ? "Unlimited messages" : `${left(L.msgs, u.msgs)} messages left today`];
+    if (L.images > 0) parts.push(L.images >= 9999 ? "Unlimited images" : `${left(L.images, u.images)} images left today`);
+    if (L.scenes > 0) parts.push(L.scenes >= 9999 ? "Unlimited video scenes" : `${left(L.scenes, u.scenes)} video scenes left this month`);
+    const until = plan === "movie" ? user.movieUntil : plan === "premium" ? user.premiumUntil : 0;
+    if (until) parts.push(`${PLAN_NAME[plan]} renews in ${Math.ceil((until - Date.now()) / 864e5)} days`);
+    $("#uInfo").innerHTML = parts.join("<br>");
   }
+  $("#upgradeBtn").textContent = plan === "free" ? "Upgrade" : plan === "admin" ? "View plans" : "Renew or upgrade";
 }
 
 /* ============ CHATS ============ */
@@ -491,24 +561,39 @@ function md(t) {
   const blocks = [];
   t = t.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, l, code) => { blocks.push(code); return `\u0000${blocks.length - 1}\u0000`; });
   t = esc(t).replace(/`([^`\n]+)`/g, "<code>$1</code>").replace(/\*\*([^*]+)\*\*/g, "<b>$1</b>").replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>').replace(/\*([^*\n]+)\*/g, "<i>$1</i>").replace(/\n/g, "<br>");
-  return t.replace(/\u0000(\d+)\u0000/g, (_, i) => `<pre><button class="copy" data-copy="${i}">Copy</button><code>${esc(blocks[i])}</code></pre>`);
+  return t.replace(/\u0000(\d+)\u0000/g, (_, i) => {
+    const isApp = /<!doctype html|<html[\s>]/i.test(blocks[i]);
+    return `<pre><button class="copy" data-copy="${i}">Copy</button>${isApp ? `<button class="copy b2" data-prev="${i}">Preview</button><button class="copy b3" data-dl="${i}">Download</button>` : ""}<code>${esc(blocks[i])}</code></pre>`;
+  });
 }
 function msgHTML(m, i) {
   if (m.role === "user") return `<div class="msg user"><div class="bub">${(m.att || []).map(a => `<img class="th" src="${a.thumb}" alt="${a.type}">`).join("")}${m.att && m.att.length ? "<br>" : ""}${esc(m.content)}</div></div>`;
   let media = "";
-  if (m.media) media = m.media.type === "video" ? `<video controls src="${esc(m.media.url)}"></video>` : `<img src="${esc(m.media.url)}" alt="Generated image">`;
+  if (m.media) media = m.media.type === "video" ? `<video controls src="${esc(m.media.url)}"></video>` : `<img src="${esc(m.media.url)}" alt="Generated image"><br><a class="listen" download="veltex-image.jpg" href="${esc(m.media.url)}" style="text-decoration:none">Download</a>`;
+  if (m.movie) media += movieHTML(m.movie.title, m.movie.clips, "");
   return `<div class="msg ai"><img class="av" src="${LOGO}" alt=""><div class="bub">${md(m.content || "")}${media}<br><button class="listen" data-say="${i}">🔊 Listen</button></div></div>`;
 }
 function renderMsgs() {
   const w = $("#wrap");
   if (!current.messages.length) {
-    w.innerHTML = `<div class="hero"><img src="${LOGO}" alt=""><h1>What can I help you with?</h1><p>Chat, attach pictures and videos, write prompts, build apps, and create images and video.</p></div>`;
+    w.innerHTML = `<div class="hero"><img src="${LOGO}" alt=""><h1>What can I help you with?</h1><p>Ask anything, search the world, create images, build apps, and get business ideas.</p></div>`;
   } else {
     w.innerHTML = current.messages.map((m, i) => msgHTML(m, i)).join("");
   }
   $("#msgs").scrollTop = 1e9;
 }
 $("#wrap").onclick = e => {
+  if (e.target.dataset.playall !== undefined) {
+    const vs = [...e.target.closest(".bub").querySelectorAll("video")];
+    vs.forEach((v, i) => v.onended = () => { if (vs[i + 1]) { vs[i + 1].scrollIntoView({ block: "center" }); vs[i + 1].play(); } });
+    vs[0].scrollIntoView({ block: "center" }); vs[0].play(); return;
+  }
+  if (e.target.dataset.prev !== undefined || e.target.dataset.dl !== undefined) {
+    const code = e.target.parentElement.querySelector("code").textContent;
+    if (e.target.dataset.prev !== undefined) { $("#prevFrame").srcdoc = code; $("#prevModal").classList.remove("hidden"); }
+    else { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([code], { type: "text/html" })); a.download = "app.html"; a.click(); }
+    return;
+  }
   if (e.target.dataset.say !== undefined) {
     const b = e.target;
     if (speaking && b.classList.contains("on")) return stopSpeak();
@@ -524,10 +609,11 @@ $("#wrap").onclick = e => {
 function setMode(m) {
   mode = m;
   $$("[data-mode]").forEach(b => b.classList.toggle("on", b.dataset.mode === m));
-  $("#input").placeholder = { chat: "Ask VELTEX AI anything", image: "Describe the image to create", video: "Describe the video to create", app: "Describe the app to build", prompt: "Describe your idea and I will write the prompt" }[m];
+  $("#input").placeholder = { chat: "Ask VELTEX AI anything", image: "Describe the image to create", video: "Describe a short video clip to create", movie: "Describe your movie idea or story", app: "Describe the app to build", prompt: "Describe your idea and I will write the prompt", business: "Tell me your budget, skills or interest" }[m];
 }
 $$("[data-mode]").forEach(b => b.onclick = () => {
-  if (!["chat", "prompt"].includes(b.dataset.mode) && !isPremium()) { toast("Image, video and app builder are Premium."); return openUpgrade(); }
+  const need = { image: "image", app: "app", video: "video", movie: "video" }[b.dataset.mode];
+  if (need && !gate(need)) return;
   setMode(b.dataset.mode);
 });
 setMode("chat");
@@ -538,149 +624,133 @@ ta.addEventListener("input", () => { ta.style.height = "auto"; ta.style.height =
 ta.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey && innerWidth > 820) { e.preventDefault(); send(); } });
 $("#send").onclick = send;
 
-/* ============ BUILT-IN ASSISTANT (works with no server) ============ */
+/* ============ COMPANY FACTS ============ */
 const FOUNDER = "Nnaemeka Chiagozie Cyprian", FOUNDER_AKA = "CN-VELTEX";
 const COFOUNDER = "Nnaemeka Chinoso Celestine", COFOUNDER_AKA = "Nonsvile";
 const founderLine = () => `The founder of VELTEX GLOBAL is **${FOUNDER}**, known as **${FOUNDER_AKA}**.`;
 const cofounderLine = () => `The co-founder of VELTEX GLOBAL is **${COFOUNDER}**, known as **${COFOUNDER_AKA}**.`;
-const CAPS = "I can search facts on almost any topic, give business ideas and plans, do calculations, write prompts for images and videos, and start simple apps.";
-const fmtNum = v => Number(v.toFixed(6)).toLocaleString("en-US", { maximumFractionDigits: 6 });
-
-function calc(t) {
-  let m = t.match(/(-?[\d.,]+)\s*%\s*of\s*(-?[\d.,]+)/);
-  if (m) { const a = parseFloat(m[1].replace(/,/g, "")), b = parseFloat(m[2].replace(/,/g, "")); if (isFinite(a) && isFinite(b)) return `**${m[1]}% of ${m[2]}** = **${fmtNum(a / 100 * b)}**`; }
-  const e = t.replace(/what is|what's|calculate|how much is|equals|=|\?/g, "").replace(/[x×]/g, "*").replace(/÷/g, "/").replace(/,/g, "").replace(/\^/g, "**").trim();
-  if (!/^[\d\s+\-*/().%]+$/.test(e) || !/\d/.test(e) || !/[+\-*/%]/.test(e.replace(/^\s*-/, ""))) return null;
-  try { const v = Function('"use strict";return (' + e + ")")(); if (typeof v === "number" && isFinite(v)) return `**${e.replace(/\s+/g, " ")}** = **${fmtNum(v)}**`; } catch {}
-  return null;
-}
-
-const IDEAS = [
-  { n: "Home-made snacks and small chops", tags: ["food", "snack", "cook", "bake", "catering"], c: 1, w: "People buy snacks every day for offices, schools, parties, and events.", s: "Pick 2 or 3 snacks you make best, package them neatly, sell to neighbours and offices, then take party orders." },
-  { n: "Meal prep and food delivery", tags: ["food", "cook", "delivery", "restaurant", "lunch"], c: 2, w: "Busy workers and students pay for ready meals delivered on time.", s: "Start with 2 menu choices, take orders on WhatsApp the evening before, and deliver at lunchtime in one area." },
-  { n: "Social media management for small businesses", tags: ["online", "social", "marketing", "tech", "phone", "instagram"], c: 1, w: "Many shops have no time to post, reply, or run adverts.", s: "Make 3 sample pages, offer one business a free week, then charge monthly for posts and replies." },
-  { n: "Logo and graphic design services", tags: ["design", "creative", "online", "art", "tech", "graphic"], c: 1, w: "Every new business needs a logo, flyers, and social media designs.", s: "Learn Canva or Photoshop, build 5 sample designs, and sell packages on social media and Fiverr." },
-  { n: "Websites and apps for local businesses", tags: ["tech", "code", "coding", "website", "app", "software", "computer"], c: 1, w: "Most small businesses still have no website or booking page.", s: "Build 2 demo sites, visit 20 local businesses, and sell a site plus a monthly care fee." },
-  { n: "Online tutoring and exam lessons", tags: ["education", "teach", "school", "tutor", "online", "kids", "learn"], c: 1, w: "Parents and students pay well for exam help, coding, and languages.", s: "Choose one subject, advertise in parent groups, run a free first lesson, then sell monthly packages." },
-  { n: "POS and mobile money agent", tags: ["money", "finance", "pos", "bank", "agent", "transfer"], c: 2, w: "Cash withdrawals and transfers are needed every day near markets and campuses.", s: "Register with a licensed provider, rent a busy spot, and keep enough cash float each morning." },
-  { n: "Poultry and egg farming", tags: ["farm", "farming", "agriculture", "poultry", "chicken", "egg", "animal"], c: 3, w: "Eggs and chicken sell all year, and demand grows during festive seasons.", s: "Start with a small pen of layers, learn feeding and vaccines from a farmer, and sell eggs to shops." },
-  { n: "Vegetable and fruit farming and supply", tags: ["farm", "farming", "agriculture", "vegetable", "fruit", "crop", "land"], c: 2, w: "Fresh produce is needed daily by markets, hotels, and restaurants.", s: "Grow fast crops like pepper, tomato, and greens, then sign supply deals with 3 restaurants." },
-  { n: "Fashion design and ready-to-wear clothes", tags: ["fashion", "cloth", "tailor", "sew", "dress", "style"], c: 2, w: "People love custom outfits and affordable ready-made styles.", s: "Make 10 standout pieces, photograph them well, and sell through Instagram and WhatsApp status." },
-  { n: "Hair, makeup, and beauty services", tags: ["beauty", "hair", "makeup", "salon", "nails"], c: 2, w: "Weddings, parties, and weekly self-care keep beauty services busy.", s: "Begin with mobile makeup or home service, build a before-and-after gallery, then open a small studio." },
-  { n: "Skincare and cosmetics reselling", tags: ["beauty", "skin", "cosmetic", "online", "perfume", "sell"], c: 2, w: "Repeat customers buy skincare again and again.", s: "Buy from a trusted wholesaler, sell in small test batches, and build a customer list for repeat orders." },
-  { n: "Laundry and pickup service", tags: ["laundry", "clean", "service", "wash", "cloth"], c: 2, w: "Working people and students will pay to save time on washing.", s: "Offer pickup and delivery in one estate, use weekly subscriptions, and add ironing later." },
-  { n: "Cleaning and fumigation services", tags: ["clean", "service", "fumigation", "office", "home"], c: 1, w: "Offices, homes, and shops need regular cleaning with little startup cost.", s: "Get basic equipment, offer a first-time discount, and sell weekly or monthly contracts." },
-  { n: "Event planning and decoration", tags: ["event", "party", "wedding", "decor", "decoration"], c: 2, w: "Weddings, birthdays, and burials happen all year.", s: "Partner with a caterer and a DJ, show photos of past work, and sell full event packages." },
-  { n: "Photography and video editing", tags: ["photo", "video", "camera", "media", "creative", "edit", "film"], c: 2, w: "Events, brands, and creators always need good pictures and videos.", s: "Practice with a phone and free editing apps, build a portfolio, then rent or buy a camera." },
-  { n: "Online store or dropshipping", tags: ["online", "ecommerce", "shop", "store", "sell", "dropship", "gadget", "phone"], c: 1, w: "You can sell without holding much stock.", s: "Pick one product type, list 10 items with good photos, and promote on social media with small ad budgets." },
-  { n: "Content creation (TikTok, YouTube, Instagram)", tags: ["content", "creator", "youtube", "tiktok", "media", "online", "video", "social"], c: 1, w: "Audiences can turn into sponsorships, affiliate sales, and your own products.", s: "Choose one topic, post every day for 90 days, and pitch brands after you reach your first 1,000 followers." },
-  { n: "Printing and branding (T-shirts, mugs, flyers)", tags: ["print", "brand", "tshirt", "t-shirt", "design", "gift"], c: 2, w: "Schools, churches, companies, and events order custom branded items.", s: "Start by outsourcing printing, collect orders online, and buy your own machine once orders are steady." },
-  { n: "Car wash and detailing", tags: ["car", "wash", "auto", "vehicle", "service"], c: 2, w: "Car owners pay for convenience and shiny cars.", s: "Begin with a mobile service in an estate, offer weekly plans, then rent a fixed location." },
-  { n: "Dispatch and delivery rider service", tags: ["delivery", "logistics", "rider", "dispatch", "transport", "bike"], c: 3, w: "Online sellers and restaurants need reliable delivery.", s: "Start with one bike, partner with 5 sellers, and add riders as orders grow." },
-  { n: "Pure water or table water production", tags: ["water", "manufacturing", "factory", "production"], c: 3, w: "People buy water every day, so sales are steady.", s: "Get the required approvals, buy a small production setup, and build a list of shop and event buyers." },
-  { n: "Scrap and plastic recycling", tags: ["recycle", "scrap", "plastic", "waste", "environment"], c: 2, w: "Recycling companies pay for collected plastic, metal, and paper.", s: "Pay collectors per kilo, store and sort materials, and sell in bulk to recyclers." },
-  { n: "Solar installation and sales", tags: ["solar", "energy", "power", "electric", "inverter", "tech"], c: 3, w: "Unstable power makes solar and inverters popular for homes and shops.", s: "Train with an installer, start with small home kits, and expand to shops and offices." },
-  { n: "Freelance writing, translation, and virtual assistant work", tags: ["writing", "write", "translate", "online", "assistant", "freelance", "remote", "language"], c: 1, w: "Companies around the world pay for remote help.", s: "Create a profile on Upwork or Fiverr, build 3 samples, and apply to 5 jobs daily." },
-  { n: "Daycare and after-school care", tags: ["kids", "child", "education", "school", "care", "baby"], c: 2, w: "Working parents need safe places for their children.", s: "Start from a safe room at home, follow local rules, and add lessons and snacks." }
-];
-function businessIdeas(t) {
-  let level = 0, amt = 0;
-  const num = t.match(/(\d[\d,.]*)\s*(k|m|million|thousand)?/);
-  if (num && /(₦|naira|capital|budget|\$|dollar|have|with)/.test(t)) {
-    amt = parseFloat(num[1].replace(/,/g, "")) * (/^(k|thousand)$/.test(num[2] || "") ? 1e3 : /^(m|million)$/.test(num[2] || "") ? 1e6 : 1);
-    if (amt > 0) level = amt < 100000 ? 1 : amt < 500000 ? 2 : 3;
-  }
-  if (!level && /(no money|zero|little|low|cheap|small capital|broke|nothing|free|small)/.test(t)) level = 1;
-  if (!level && /(big|large|million|serious capital|high capital)/.test(t)) level = 3;
-  const scored = IDEAS.map(i => {
-    let s = Math.random() * 0.5;
-    i.tags.forEach(g => { if (t.includes(g)) s += 2; });
-    if (level) s += i.c <= level ? 1 : -2;
-    return { i, s };
-  }).sort((a, b) => b.s - a.s).slice(0, 3).map(x => x.i);
-  const cost = { 1: "Low, about ₦20,000 to ₦100,000", 2: "Medium, about ₦100,000 to ₦500,000", 3: "High, ₦500,000 and above" };
-  return "Here are 3 business ideas you can start:\n\n" + scored.map((i, k) => `**${k + 1}. ${i.n}**\nStartup cost: ${cost[i.c]}\nWhy it works: ${i.w}\nFirst steps: ${i.s}`).join("\n\n")
-    + "\n\nTell me your budget, skills, or interest (for example: *business idea for food with low money*) and I will narrow it down. You can also say *business plan for* your idea.";
-}
-function businessPlan(q) {
-  const m = q.match(/business plan (?:for|of|about|on)\s+(.+)/i);
-  const topic = (m ? m[1] : "your business").replace(/[?.!]+$/, "");
-  return `Here is a simple business plan outline for **${topic}**:\n\n**1. Summary**\nIn two sentences: what you sell, who it is for, and why they will choose you.\n\n**2. Customers**\nWho exactly will pay? Write their age, area, and the problem you solve for them.\n\n**3. Offer and price**\nList your products or services, what each costs you to make, and your selling price.\n\n**4. Money**\nAdd up startup costs, monthly costs, and expected sales. Profit = sales minus all costs.\n\n**5. Marketing**\nChoose 2 channels (WhatsApp, Instagram, flyers, referrals) and plan one post or action every day.\n\n**6. First 30 days**\nWeek 1: set up and test. Week 2: get your first 5 customers. Week 3: ask for reviews. Week 4: improve and raise your price if demand is high.\n\nTell me more about ${topic} and I can suggest better steps.`;
-}
-
 function quickAnswer(q) {
   const t = q.toLowerCase().replace(/\s+/g, " ").trim();
   const about = /veltex|this (app|ai|company)|your (founder|owner|ceo)|who (made|created|built|owns?) you/.test(t);
-  if (/nonsvile|chinoso|celestine/.test(t)) return cofounderLine();
-  if (/cn-?veltex|chiagozie|cyprian/.test(t)) return founderLine();
+  if (/nonsvile|chinoso/.test(t)) return cofounderLine();
+  if (/cn-?veltex|chiagozie/.test(t)) return founderLine();
   if (about && /co[\s-]?founder/.test(t)) return cofounderLine();
   if (about && /(founder|owner|owns?|ceo|boss|created|made|built|behind|head of)/.test(t)) return founderLine();
-  if (/\bnnaemeka\b/.test(t) && /who|about|tell/.test(t)) return founderLine() + "\n\n" + cofounderLine();
-  if (/\bveltex\b/.test(t) && /(what is|who is|about|tell me)/.test(t)) return "VELTEX AI is a multimodal AI assistant from VELTEX GLOBAL. " + CAPS;
-  if (/^(hi|hello|hey|hola|good (morning|afternoon|evening|night)|how are you|how far|wassup|what'?s up)\b/.test(t)) return "Hello! I am VELTEX AI. " + CAPS + " What would you like to know?";
-  if (/^(thanks|thank you|thx|nice one)\b/.test(t)) return "You are welcome! Ask me anything else.";
-  if (/(who are you|what are you|what can you do|your name)/.test(t) || t === "help") return "I am VELTEX AI, the assistant of VELTEX GLOBAL. " + CAPS;
-  if (/(what('?s| is) (the )?(time|date|day)|today'?s date|current time|what time is it)/.test(t)) {
-    const d = new Date();
-    return "It is **" + d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) + "** on **" + d.toLocaleDateString([], { weekday: "long", year: "numeric", month: "long", day: "numeric" }) + "**.";
-  }
-  const c = calc(t); if (c) return c;
-  if (/business plan/.test(t)) return businessPlan(q);
-  if (/(business idea|startup idea|side hustle|small business|start a business|what business|business to start|make money|idea for business|ideas for business)/.test(t)) return businessIdeas(t);
   return null;
 }
 
-async function wikiAnswer(q) {
-  const query = q.replace(/[?!]+$/, "").trim();
-  const url = "https://en.wikipedia.org/w/api.php?action=query&generator=search&gsrlimit=1&prop=extracts%7Cpageimages%7Cinfo&exintro=1&explaintext=1&exchars=900&piprop=thumbnail&pithumbsize=500&inprop=url&format=json&origin=*&gsrsearch=" + encodeURIComponent(query);
+/* ============ AI (Claude and Grok through your Netlify server) ============ */
+let prov = load("vx_prov", "claude");
+function renderProv() { $("#provChip").textContent = "AI: " + (prov === "grok" ? "Grok" : "Claude"); $("#provChip").classList.toggle("on", prov === "grok"); }
+$("#provChip").onclick = () => { prov = prov === "grok" ? "claude" : "grok"; save("vx_prov", prov); renderProv(); toast("Now using " + (prov === "grok" ? "Grok" : "Claude") + "."); };
+renderProv();
+
+const NOAI_MSG = "VELTEX AI is not connected to its AI server yet, so it cannot answer right now. Please try again later. (Admin: add your AI keys in Netlify and redeploy.)";
+
+async function streamChat(s, system, messages, onText) {
+  let r;
   try {
-    const r = await fetch(url); const d = await r.json();
-    const p = d.query && Object.values(d.query.pages).sort((a, b) => a.index - b.index)[0];
-    if (!p || !p.extract) return { content: "I could not find anything on that. Try different words, such as the name of a person, place, or topic." };
-    const out = { content: `**${p.title}**\n${p.extract.trim()}\n\n[Read more on Wikipedia](${p.fullurl})` };
-    if (p.thumbnail) out.media = { type: "image", url: p.thumbnail.source };
-    return out;
-  } catch { return { content: "I could not reach the information service. Check your internet connection and try again." }; }
+    r = await fetch(s.chatEndpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ system, messages, premium: isPremium(), provider: prov, mode }) });
+  } catch { throw Object.assign(new Error("offline"), { absent: true }); }
+  if (!r.ok || !r.body) {
+    const d = await r.json().catch(() => null);
+    throw Object.assign(new Error(d && d.error ? d.error : "status " + r.status), { absent: !d });
+  }
+  const rd = r.body.getReader(), dec = new TextDecoder(); let buf = "", acc = "";
+  try {
+    for (;;) {
+      const { done, value } = await rd.read(); if (done) break;
+      buf += dec.decode(value, { stream: true });
+      const lines = buf.split("\n"); buf = lines.pop();
+      for (const ln of lines) {
+        if (!ln.startsWith("data:")) continue;
+        const d = ln.slice(5).trim(); if (!d || d === "[DONE]") continue;
+        let j; try { j = JSON.parse(d); } catch { continue; }
+        if (j.e) throw new Error(j.e);
+        if (j.t) { acc += j.t; onText(acc); }
+      }
+    }
+  } catch (e) { if (!acc) throw e; }
+  if (!acc.trim()) throw new Error("The AI returned an empty answer. Try again.");
+  return acc;
 }
 
-function localPrompt(t) {
-  const idea = t.replace(/[.!]+$/, "");
-  const img = `${idea}, ultra-realistic photograph, natural skin texture and fine detail, cinematic lighting, shallow depth of field, shot on an 85mm lens, sharp focus, 8K resolution, true-to-life colors`;
-  const vid = `${idea}. Cinematic video, smooth camera movement, natural motion, realistic lighting, 24 frames per second, 10 seconds, consistent character and setting, high detail, 4K`;
-  return "Here are your prompts. Copy one into any image or video generator.\n\n**Image prompt**\n```\n" + img + "\n```\n**Video prompt**\n```\n" + vid + "\n```\n**Short version**\n```\n" + idea + ", realistic, cinematic, high detail\n```";
+// Used when this app is opened inside Claude itself (no server needed there)
+async function askClaudeDirect(system, messages) {
+  const call = async tools => {
+    const body = { model: "claude-sonnet-4-6", max_tokens: 1000, system, messages };
+    if (tools) body.tools = [{ type: "web_search_20250305", name: "web_search" }];
+    const r = await fetch("https://api.anthropic.com/v1/messages", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.content) throw new Error("direct failed");
+    return d.content.filter(c => c.type === "text").map(c => c.text).join("").trim();
+  };
+  let out = "";
+  try { out = await call(true); } catch { out = await call(false).catch(() => { throw new Error("NO_AI"); }); }
+  if (!out) throw new Error("NO_AI");
+  return out;
 }
-function mediaSoon(kind, t) {
-  return "Creating " + kind + "s directly inside the app is coming soon. Here is a ready prompt you can use in any generator for now:\n\n" + localPrompt(t);
+
+function shrinkImage(dataUrl) {
+  return new Promise(res => {
+    const i = new Image();
+    i.onload = () => { try { const k = Math.min(1, 1024 / Math.max(i.naturalWidth, i.naturalHeight)), c = document.createElement("canvas"); c.width = Math.round(i.naturalWidth * k); c.height = Math.round(i.naturalHeight * k); c.getContext("2d").drawImage(i, 0, 0, c.width, c.height); res(c.toDataURL("image/jpeg", .85)); } catch { res(dataUrl); } };
+    i.onerror = () => res(dataUrl); i.src = dataUrl;
+  });
 }
-function buildApp(t) {
-  const x = t.toLowerCase(), head = '<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">';
-  let title, code;
-  if (/todo|to-do|task|list/.test(x)) {
-    title = "task list app";
-    code = [head + "<title>My Tasks</title>", "<style>body{font-family:system-ui;max-width:420px;margin:30px auto;padding:0 16px}li{padding:8px 0;cursor:pointer}li.d{text-decoration:line-through;opacity:.5}input{padding:10px;width:68%}button{padding:10px}</style></head>",
-      '<body><h2>My Tasks</h2><input id="t" placeholder="New task"> <button onclick="add()">Add</button><ul id="l"></ul>',
-      "<script>function add(){var v=t.value.trim();if(!v)return;var li=document.createElement('li');li.textContent=v;li.onclick=function(){li.classList.toggle('d')};l.appendChild(li);t.value=''}<\/script></body></html>"].join("\n");
-  } else if (/calc/.test(x)) {
-    title = "calculator app";
-    code = [head + "<title>Calculator</title>", "<style>body{font-family:system-ui;max-width:300px;margin:30px auto}input{width:100%;padding:14px;font-size:22px;text-align:right}button{width:23%;padding:14px;margin:1%;font-size:18px}</style></head>",
-      '<body><input id="d" readonly><div id="k"></div>',
-      "<script>'789/456*123-0.=+'.split('').forEach(function(c){var b=document.createElement('button');b.textContent=c;b.onclick=function(){if(c=='='){try{d.value=Function('return '+d.value)()}catch(e){d.value='Error'}}else d.value+=c};k.appendChild(b)});<\/script></body></html>"].join("\n");
-  } else {
-    const m = t.match(/(?:for|called|named)\s+(.+)/i), name = (m ? m[1] : "My Business").replace(/[<>"&]/g, "").replace(/[.!?]+$/, "").slice(0, 40);
-    title = "landing page for " + name;
-    code = [head + "<title>" + name + "</title>", "<style>body{margin:0;font-family:system-ui;color:#123}header{background:#0b1b3d;color:#fff;padding:60px 20px;text-align:center}section{padding:30px 20px;max-width:640px;margin:auto}a.b{display:inline-block;background:#4de3ff;color:#012;padding:12px 22px;border-radius:10px;text-decoration:none;margin-top:14px}</style></head>",
-      "<body><header><h1>" + name + "</h1><p>Quality you can trust.</p><a class=\"b\" href=\"#c\">Contact us</a></header>",
-      "<section><h2>What we do</h2><p>Write a short description of your products or services here.</p></section>",
-      '<section id="c"><h2>Contact</h2><p>Phone or WhatsApp: add your number here.</p></section></body></html>'].join("\n");
+async function makeImage(prompt, s) {
+  try {
+    const r = await fetch(s.mediaEndpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: "image", prompt }) });
+    const d = await r.json().catch(() => ({}));
+    if (r.ok && d.url) return { role: "assistant", content: "Here is your image.", media: { type: "image", url: await shrinkImage(d.url) } };
+    return { role: "assistant", content: d.error ? "I could not create that image: " + d.error : "Image creation is not connected yet. The admin must add the image key in Netlify." };
+  } catch { return { role: "assistant", content: "I could not reach the image server. Check your connection and try again." }; }
+}
+
+/* ============ MOVIES ============ */
+let POLL_MS = 5000;
+const MOVIE_SYS = ' You are a film director. Reply with ONLY valid JSON, no other text and no code fences, shaped like {"title":"...","scenes":[{"caption":"short summary of the scene","prompt":"detailed visual prompt for an AI video generator covering subject, setting, action, camera movement, lighting and style, for a 5 second clip"}]}. Describe the same characters, look and style in every scene prompt so the scenes match.';
+const movieHTML = (title, clips, status) => `<b>${esc(title)}</b>` + clips.map(c => `<div class="clip"><video controls playsinline preload="metadata" src="${esc(c.url)}"></video><small>${esc(c.caption)} · <a href="${esc(c.url)}" target="_blank" rel="noopener">Open</a></small></div>`).join("")
+  + (status ? `<p style="color:var(--muted);margin-top:8px">${esc(status)}</p>` : "") + (clips.length > 1 && !status ? `<br><button class="listen" data-playall="1">▶ Play whole movie</button>` : "");
+async function planMovie(s, idea, count) {
+  const system = CONFIG.systemPrompt + MOVIE_SYS + ` Write exactly ${count} scenes that tell a complete short story with a beginning, middle and end.`;
+  let txt; try { txt = await streamChat(s, system, [{ role: "user", content: idea }], () => {}); } catch (e) { throw new Error(e.absent ? "NO_AI" : "VELTEX AI server error: " + e.message); }
+  try {
+    const j = JSON.parse(txt.match(/\{[\s\S]*\}/)[0]);
+    return { title: String(j.title || "My movie").slice(0, 80), scenes: j.scenes.slice(0, count).map(x => ({ caption: String(x.caption || "").slice(0, 120), prompt: String(x.prompt || x.caption).slice(0, 900) })) };
+  } catch { throw new Error("I could not write the movie script. Please try again."); }
+}
+async function makeClip(prompt, s) {
+  const post = body => ({ method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  let r; try { r = await fetch(s.videoEndpoint, post({ action: "start", prompt })); } catch { throw new Error("Could not reach the video server."); }
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok || !d.id) throw new Error(d.error || "Video creation is not connected yet. The admin must add the video key in Netlify.");
+  const t0 = Date.now();
+  while (Date.now() - t0 < 300000) {
+    await new Promise(res => setTimeout(res, POLL_MS));
+    const st = await fetch(s.videoEndpoint, post({ action: "status", id: d.id })).then(x => x.json()).catch(() => ({}));
+    if (st.state === "completed" && st.url) return st.url;
+    if (st.state === "failed" || st.error) throw new Error(st.error || "The video failed.");
   }
-  return "Here is a simple " + title + ". Copy the code, save it as a file named index.html, and open it in your browser.\n\n```\n" + code + "\n```\nTell me what to change and I will help you improve it.";
+  throw new Error("The video took too long.");
 }
-async function offlineAnswer(text, m, nImgs) {
-  if (m === "prompt") return { content: localPrompt(text) };
-  if (m === "app") return { content: buildApp(text) };
-  const r = await wikiAnswer(text);
-  if (nImgs) r.content += "\n\n(I cannot look at pictures yet, so I answered from your words only.)";
-  return r;
+async function runMovie(idea, s, single) {
+  const plan = planOf(), L = limitsOf(plan), u = useNow();
+  const room = plan === "admin" ? 20 : Math.max(0, L.scenes - u.scenes);
+  const asked = (idea.match(/(\d+)\s*scenes?/i) || [])[1];
+  const count = single ? 1 : Math.min(L.maxScenes, room, asked ? Math.max(1, +asked) : 99);
+  if (count <= 0) return { role: "assistant", content: "You have used this month's video scenes. They reset next month." };
+  const setBub = html => { const b = $("#tp .bub"); if (b) { b.innerHTML = html; $("#msgs").scrollTop = 1e9; } };
+  let script = { title: "Video", scenes: [{ caption: idea.slice(0, 100), prompt: idea }] };
+  if (!single) { setBub("Writing your movie script..."); script = await planMovie(s, idea, count); }
+  const clips = [];
+  for (let i = 0; i < script.scenes.length; i++) {
+    const sc = script.scenes[i];
+    setBub(movieHTML(script.title, clips, `Creating scene ${i + 1} of ${script.scenes.length}: ${sc.caption}. Each scene takes a few minutes. Keep this page open.`));
+    try { clips.push({ caption: sc.caption, url: await makeClip(sc.prompt, s) }); bump("scenes"); }
+    catch (e) { return { role: "assistant", content: `Stopped at scene ${i + 1}: ${e.message}`, movie: clips.length ? { title: script.title, clips } : undefined }; }
+  }
+  return { role: "assistant", content: single ? "Your video is ready." : "Your movie is ready.", movie: { title: script.title, clips } };
 }
 
 async function send() {
@@ -689,11 +759,9 @@ async function send() {
   if (!text) text = mode === "prompt" ? "Write a prompt from this." : "Describe this and tell me what you see.";
 
   const s = settings();
-  if (!isPremium()) {
-    const used = user.usage[today()] || 0;
-    if (used >= s.freePerDay) { toast("You have used today's free messages."); return openUpgrade(); }
-    user.usage = { [today()]: used + 1 }; persistUser(); renderUser();
-  }
+  const kind = mode === "image" ? "image" : (mode === "video" || mode === "movie") ? "video" : mode === "app" ? "app" : "msg";
+  if (kind === "app" ? !(gate("app") && gate("msg")) : !gate(kind)) return;
+  if (kind === "msg" || kind === "app") bump("msgs"); else if (kind === "image") bump("images");
 
   ta.value = ""; ta.style.height = "auto";
   const imgs = pending.flatMap(p => p.full);
@@ -712,38 +780,26 @@ async function send() {
 
   let reply = { role: "assistant", content: "" };
   try {
-    if (mode === "image" || mode === "video") {
-      let made = false;
-      if (s.mediaEndpoint) {
-        try {
-          const r = await fetch(s.mediaEndpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ type: mode, prompt: text, images: imgs }) });
-          const d = await r.json().catch(() => ({}));
-          if (r.ok && d.url) { reply = { role: "assistant", content: mode === "video" ? "Here is your video." : "Here is your image.", media: { type: mode, url: d.url } }; made = true; }
-        } catch {}
-      }
-      if (!made) reply.content = mediaSoon(mode, text);
+    if (mode === "image") {
+      reply = await makeImage(text, s);
+    } else if (mode === "video" || mode === "movie") {
+      reply = await runMovie(text, s, mode === "video");
     } else {
-      let done = false;
-      if (s.chatEndpoint) {
-        try {
-          const system = CONFIG.systemPrompt
-            + (mode === "app" ? " The user wants a complete working app. Reply with full code in fenced blocks, file by file, plus short run instructions." : "")
-            + (mode === "prompt" ? PROMPT_SYS : "")
-            + (imgs.length ? " The user attached pictures (or frames taken from a video). Look at them carefully and use them in your answer." : "");
-          const history = current.messages.slice(-30).map(m => ({ role: m.role, content: m.content }));
-          if (imgs.length) {
-            const last = history[history.length - 1];
-            last.content = [...imgs.slice(0, 6).map(d => ({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: d.split(",")[1] } })), { type: "text", text: last.content }];
-          }
-          const r = await fetch(s.chatEndpoint, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ system, messages: history, premium: isPremium() }) });
-          const d = await r.json().catch(() => ({}));
-          if (r.ok && d.reply) { reply.content = d.reply; done = true; }
-        } catch {}
+      const system = CONFIG.systemPrompt + APP_RULES[mode] + (imgs.length ? " The user attached pictures (or frames taken from a video). Look at them carefully and use them in your answer." : "");
+      const history = current.messages.slice(-30).map(m => ({ role: m.role, content: m.content }));
+      if (imgs.length) {
+        const last = history[history.length - 1];
+        last.content = [...imgs.slice(0, 6).map(d => ({ type: "image", source: { type: "base64", media_type: "image/jpeg", data: d.split(",")[1] } })), { type: "text", text: last.content }];
       }
-      if (!done) Object.assign(reply, await offlineAnswer(text, mode, imgs.length));
+      try {
+        reply.content = await streamChat(s, system, history, t => { const b = $("#tp .bub"); if (b) { b.innerHTML = md(t); $("#msgs").scrollTop = 1e9; } });
+      } catch (e) {
+        try { reply.content = await askClaudeDirect(system, history); }
+        catch { throw new Error(e.absent ? "NO_AI" : "VELTEX AI server error: " + e.message); }
+      }
     }
   } catch (e) {
-    reply.content = "Something went wrong. Please try again.";
+    reply.content = e.message === "NO_AI" ? NOAI_MSG : e.message;
   }
   $("#tp")?.remove();
   current.messages.push(reply); save("vx_chats", chats); renderMsgs(); autoSpeak(reply.content);
@@ -752,7 +808,10 @@ async function send() {
 
 /* ============ ATTACHMENTS ============ */
 let pending = [];
+const BUSINESS_SYS = " You are now in Business idea mode. Give practical business ideas the user can start with little money. Unless asked otherwise, give 3 ideas. For each: name, who pays, startup cost range, how to start in the first 7 days, how it makes money, and the main risk. End with which idea you would start with and why. If the user states a budget, skills, interests or country, fit the ideas to them and use their local currency. Keep it short and clear.";
+const APP_SYS = " You are now in Build app mode. Build a real, complete, working app that the user can run. Make it ONE self-contained index.html file (HTML, CSS and JavaScript together, no build tools, no accounts or keys needed), mobile-friendly and well designed. Put the whole file in a single fenced code block, never cut it short and never use placeholders. After the code, add two short lines on how to use it.";
 const PROMPT_SYS = " You are now in Prompt mode. Turn the user's idea (and any attached picture) into a ready-to-use prompt for an AI image or video generator. Reply with: 1) one main prompt in a fenced code block, covering subject, appearance, setting, style, lighting, camera angle and lens, mood, and for video also motion, shot length and scene changes; 2) one shorter variant in a second fenced code block; 3) one line saying which tool type it suits. Keep any extra text short.";
+const APP_RULES = { chat: "", business: BUSINESS_SYS, prompt: PROMPT_SYS, app: APP_SYS };
 function grab(src, w, h, max, q) {
   const k = Math.min(1, max / Math.max(w, h)), c = document.createElement("canvas");
   c.width = Math.round(w * k); c.height = Math.round(h * k);
@@ -920,21 +979,37 @@ function depositText() {
   if (!d.bank && !d.number) return "Payment details have not been added yet. Please check back soon.";
   return `Bank: ${d.bank}\nAccount number: ${d.number}\nAccount name: ${d.name}` + (d.note ? `\n\n${d.note}` : "");
 }
-function openUpgrade() {
-  $("#upPrice").textContent = money(settings().price);
+let upPlan = "premium";
+function perksFor(pl) {
+  const L = settings().limits[pl], f = n => n >= 9999 ? "Unlimited" : n;
+  const a = [`${f(L.msgs)} messages per day`];
+  if (L.images > 0) a.push(`${f(L.images)} AI images per day`);
+  if (L.maxScenes > 0) a.push(`Movies up to ${L.maxScenes} scenes (about ${L.maxScenes * 5} seconds), ${L.scenes} video scenes per month`);
+  a.push("App builder, voice, Claude and Grok");
+  return a;
+}
+function showPlan(pl) {
+  upPlan = pl; const s = settings();
+  $$("[data-plan]").forEach(b => b.classList.toggle("on", b.dataset.plan === pl));
+  $("#upPrice").textContent = money(pl === "movie" ? s.moviePrice : s.price);
+  $("#upPerks").innerHTML = perksFor(pl).map(x => `<li>${esc(x)}</li>`).join("");
+}
+function openUpgrade(pl) {
+  showPlan(typeof pl === "string" ? pl : "premium");
   $("#upDeposit").textContent = depositText();
   $("#payRef").value = "";
   $("#upModal").classList.remove("hidden"); closeSide();
 }
-$("#upgradeBtn").onclick = openUpgrade;
+$("#upgradeBtn").onclick = () => openUpgrade();
+$$("[data-plan]").forEach(b => b.onclick = () => showPlan(b.dataset.plan));
 $("#paidBtn").onclick = () => {
   const ref = $("#payRef").value.trim();
   if (!ref) return toast("Enter your payment reference or sender name.");
-  const pays = load("vx_payments", []);
-  pays.unshift({ id: "p" + Date.now(), email: user.email, name: user.name, ref, amount: settings().price, date: Date.now(), status: "pending" });
+  const s = settings(), pays = load("vx_payments", []);
+  pays.unshift({ id: "p" + Date.now(), email: user.email, name: user.name, ref, plan: upPlan, amount: upPlan === "movie" ? s.moviePrice : s.price, date: Date.now(), status: "pending" });
   save("vx_payments", pays);
   $("#upModal").classList.add("hidden");
-  toast("Payment submitted. Premium starts once it is confirmed.");
+  toast("Payment submitted. Your plan starts once it is confirmed.");
 };
 
 /* ============ ADMIN ============ */
@@ -977,12 +1052,12 @@ function showAdminLogin() {
 async function adminLogin() {
   try { if ($("#admEmail").value.trim().toLowerCase() !== CONFIG.adminEmail || await sha($("#admPass").value.trim()) !== CONFIG.adminHash) return toast("Wrong email or password."); }
   catch { return toast("Admin login failed. Reload the page and try again."); }
-  sess.set("vx_admin", "1"); $("#adLogin").classList.add("hidden"); openAdmin();
+  sess.set("vx_admin", "1"); $("#adLogin").classList.add("hidden"); renderUser(); openAdmin();
 }
 $("#admGo").onclick = adminLogin;
 $("#admEmail").addEventListener("keydown", e => { if (e.key === "Enter") $("#admPass").focus(); });
 $("#admPass").addEventListener("keydown", e => { if (e.key === "Enter") adminLogin(); });
-$("#lockAdmin").onclick = () => { sess.del("vx_admin"); $("#adModal").classList.add("hidden"); history.replaceState(null, "", location.pathname); toast("Logged out of admin."); };
+$("#lockAdmin").onclick = () => { sess.del("vx_admin"); renderUser(); $("#adModal").classList.add("hidden"); history.replaceState(null, "", location.pathname); toast("Logged out of admin."); };
 addEventListener("hashchange", routeAdmin);
 function secretTap(el) {
   if (!el) return; let n = 0, t;
@@ -992,20 +1067,31 @@ secretTap($("#topTitle")); secretTap(document.querySelector("#auth img.lg")); se
 function openAdmin() {
   const s = settings();
   $("#dBank").value = s.deposit.bank; $("#dNum").value = s.deposit.number; $("#dName").value = s.deposit.name;
-  $("#dNote").value = s.deposit.note; $("#dPrice").value = s.price; $("#dLimit").value = s.freePerDay;
+  $("#dNote").value = s.deposit.note; $("#dPrice").value = s.price;
   $("#cChat").value = s.chatEndpoint; $("#cMedia").value = s.mediaEndpoint; $("#cGoogle").value = s.googleClientId || "";
-  renderPay(); renderUsers();
+  renderPay(); renderUsers(); renderLimits();
   $("#adModal").classList.remove("hidden");
 }
 $$("[data-tab]").forEach(b => b.onclick = () => {
   $$("[data-tab]").forEach(x => x.classList.toggle("on", x === b));
-  ["pay", "dep", "usr", "api"].forEach(t => $("#tab-" + t).classList.toggle("hidden", t !== b.dataset.tab));
+  ["pay", "dep", "usr", "lim", "api", "srv"].forEach(t => $("#tab-" + t).classList.toggle("hidden", t !== b.dataset.tab));
 });
+const LIM_ROWS = [["msgs", "Messages per day"], ["images", "Images per day"], ["scenes", "Video scenes per month"], ["maxScenes", "Scenes in one movie"]];
+function renderLimits() {
+  const s = settings();
+  $("#limBox").innerHTML = `<table><tr><th></th><th>Free</th><th>Premium</th><th>Movie</th></tr>` + LIM_ROWS.map(([k, label]) => `<tr><td>${label}</td>` + ["free", "premium", "movie"].map(pl => `<td><input data-lim="${pl}.${k}" value="${s.limits[pl][k]}" inputmode="numeric" style="width:64px;padding:8px"></td>`).join("") + "</tr>").join("") + "</table>";
+  $("#limMovie").value = s.moviePrice;
+}
+$("#saveLim").onclick = () => {
+  const limits = { free: {}, premium: {}, movie: {} };
+  $$("[data-lim]").forEach(i => { const [pl, k] = i.dataset.lim.split("."); limits[pl][k] = Math.max(0, Math.floor(Number(i.value) || 0)); });
+  patchSettings({ limits, moviePrice: Number($("#limMovie").value) || 10000 }); renderUser(); toast("Saved.");
+};
 function patchSettings(p) { save("vx_settings", { ...load("vx_settings", {}), ...p }); }
 $("#saveDep").onclick = () => {
   patchSettings({
     deposit: { bank: $("#dBank").value.trim(), number: $("#dNum").value.trim(), name: $("#dName").value.trim(), note: $("#dNote").value.trim() },
-    price: Number($("#dPrice").value) || 3000, freePerDay: Number($("#dLimit").value) || 10
+    price: Number($("#dPrice").value) || 3000
   });
   renderUser(); toast("Saved.");
 };
@@ -1013,8 +1099,8 @@ $("#saveApi").onclick = () => { patchSettings({ chatEndpoint: $("#cChat").value.
 
 function renderPay() {
   const pays = load("vx_payments", []);
-  $("#tab-pay").innerHTML = pays.length ? `<table><tr><th>User</th><th>Reference</th><th>Amount</th><th>Status</th><th></th></tr>${pays.map(p =>
-    `<tr><td>${esc(p.name)}<br><span style="color:var(--muted)">${esc(p.email)}</span></td><td>${esc(p.ref)}</td><td>${money(p.amount)}</td><td>${p.status}</td>
+  $("#tab-pay").innerHTML = pays.length ? `<table><tr><th>User</th><th>Reference</th><th>Plan</th><th>Amount</th><th>Status</th><th></th></tr>${pays.map(p =>
+    `<tr><td>${esc(p.name)}<br><span style="color:var(--muted)">${esc(p.email)}</span></td><td>${esc(p.ref)}</td><td>${esc(p.plan || "premium")}</td><td>${money(p.amount)}</td><td>${p.status}</td>
     <td>${p.status === "pending" ? `<button class="btn sm" data-ok="${p.id}">Approve</button> <button class="btn sm ghost" data-no="${p.id}">Reject</button>` : ""}</td></tr>`).join("")}</table>`
     : `<p style="color:var(--muted);font-size:14px">No payments yet. Submitted payments will show here for approval.</p>`;
 }
@@ -1024,17 +1110,227 @@ $("#tab-pay").onclick = e => {
   if (ok) {
     p.status = "approved";
     const users = load("vx_users", {}); const u = users[p.email];
-    if (u) { u.premiumUntil = Math.max(Date.now(), u.premiumUntil || 0) + 30 * 864e5; save("vx_users", users); if (user && user.email === u.email) { user = u; save("vx_user", u); } }
+    if (u) { const k = p.plan === "movie" ? "movieUntil" : "premiumUntil"; u[k] = Math.max(Date.now(), u[k] || 0) + 30 * 864e5; save("vx_users", users); if (user && user.email === u.email) { user = u; save("vx_user", u); } }
   } else p.status = "rejected";
   save("vx_payments", pays); renderPay(); renderUsers(); renderUser();
 };
 function renderUsers() {
   const us = Object.values(load("vx_users", {}));
   $("#tab-usr").innerHTML = `<table><tr><th>Name</th><th>Email</th><th>Plan</th></tr>${us.map(u =>
-    `<tr><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td>${u.premiumUntil > Date.now() ? "Premium until " + new Date(u.premiumUntil).toLocaleDateString() : "Free"}</td></tr>`).join("")}</table>`;
+    `<tr><td>${esc(u.name)}</td><td>${esc(u.email)}</td><td>${u.movieUntil > Date.now() ? "Movie until " + new Date(u.movieUntil).toLocaleDateString() : u.premiumUntil > Date.now() ? "Premium until " + new Date(u.premiumUntil).toLocaleDateString() : "Free"}</td></tr>`).join("")}</table>`;
 }
 
 </script>
 
+<script type="text/plain" id="raw-toml">
+[build]
+  publish = "."
+</script>
+<script type="text/plain" id="raw-chat">
+// VELTEX AI chat server (Netlify Edge Function) at /api/chat
+// Works with Claude and Grok. Keys live in Netlify settings (Environment variables), never in the page.
+//   ANTHROPIC_API_KEY   required for Claude
+//   XAI_API_KEY         required for Grok
+//   GOOGLE_API_KEY + GOOGLE_CSE_ID   optional: adds live Google results to answers
+//                       (without them, Claude uses its own web search)
+// Optional: CLAUDE_MODEL_FREE, CLAUDE_MODEL_PREMIUM, XAI_MODEL, ALLOWED_ORIGINS
+
+const enc = new TextEncoder(), dec = new TextDecoder();
+const J = (o, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { "Content-Type": "application/json" } });
+const env = (k) => Deno.env.get(k) || "";
+
+function allowed(req) {
+  const origin = req.headers.get("origin") || "";
+  if (!origin) return true;
+  let host = ""; try { host = new URL(origin).hostname; } catch {}
+  const extra = env("ALLOWED_ORIGINS").split(",").map((x) => x.trim()).filter(Boolean);
+  return origin === env("URL") || host.endsWith(".netlify.app") || host === "localhost" || extra.includes(origin);
+}
+
+const textOf = (m) => typeof m.content === "string" ? m.content : (m.content || []).filter((c) => c.type === "text").map((c) => c.text).join(" ");
+
+// Turn the upstream stream into simple lines: data: {"t":"text"}
+function relay(body, pick) {
+  const rd = body.getReader(); let buf = "";
+  return new Response(new ReadableStream({
+    async pull(ctrl) {
+      for (;;) {
+        const { done, value } = await rd.read();
+        if (done) { ctrl.enqueue(enc.encode("data: [DONE]\n\n")); ctrl.close(); return; }
+        buf += dec.decode(value, { stream: true });
+        const lines = buf.split("\n"); buf = lines.pop();
+        let sent = false;
+        for (const ln of lines) {
+          if (!ln.startsWith("data:")) continue;
+          const d = ln.slice(5).trim(); if (!d || d === "[DONE]") continue;
+          try { const o = pick(JSON.parse(d)); if (o) { ctrl.enqueue(enc.encode("data: " + JSON.stringify(o) + "\n\n")); sent = true; } } catch {}
+        }
+        if (sent) return;
+      }
+    },
+    cancel() { rd.cancel(); },
+  }), { headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-cache" } });
+}
+
+const pickClaude = (j) => j.type === "content_block_delta" && j.delta && j.delta.type === "text_delta" ? { t: j.delta.text }
+  : j.type === "error" ? { e: (j.error && j.error.message) || "AI error" } : null;
+const pickGrok = (j) => j.choices && j.choices[0] && j.choices[0].delta && j.choices[0].delta.content ? { t: j.choices[0].delta.content } : null;
+
+async function googleContext(q) {
+  const key = env("GOOGLE_API_KEY"), cx = env("GOOGLE_CSE_ID");
+  if (!key || !cx) return null;
+  try {
+    const r = await fetch(`https://www.googleapis.com/customsearch/v1?key=${key}&cx=${cx}&num=5&q=${encodeURIComponent(q.slice(0, 200))}`, { signal: AbortSignal.timeout(4000) });
+    const d = await r.json();
+    return (d.items || []).map((i, n) => `${n + 1}. ${i.title}: ${i.snippet} (${i.link})`).join("\n") || null;
+  } catch { return null; }
+}
+
+const NEEDS_SEARCH = /\b(who|what|when|where|which|how much|how many|latest|today|news|price|current|now|score|weather|2025|2026|search|find|look up)\b/i;
+
+export default async (req) => {
+  if (req.method !== "POST") return J({ error: "Use POST" }, 405);
+  if (!allowed(req)) return J({ error: "Not allowed" }, 403);
+  let b; try { b = await req.json(); } catch { return J({ error: "Bad request" }, 400); }
+
+  const provider = b.provider === "grok" ? "grok" : "claude";
+  const premium = b.premium === true;
+  const messages = Array.isArray(b.messages) ? b.messages.slice(-30) : [];
+  if (!messages.length) return J({ error: "No message" }, 400);
+  let system = String(b.system || "").slice(0, 8000);
+  const last = textOf(messages[messages.length - 1]);
+  const isApp = b.mode === "app";
+  const maxTokens = isApp ? (premium ? 8000 : 4000) : (premium ? 3000 : 1500);
+
+  let claudeSearch = false;
+  if (!isApp && b.mode !== "prompt" && b.mode !== "movie" && last.length > 3 && NEEDS_SEARCH.test(last)) {
+    const ctx = await googleContext(last);
+    if (ctx) system += "\n\nLive Google search results for the user's latest message. Use them when relevant and mention the source name briefly:\n" + ctx;
+    else claudeSearch = provider === "claude";
+  }
+
+  if (provider === "grok") {
+    const key = env("XAI_API_KEY");
+    if (!key) return J({ error: "Grok is not connected yet. Add XAI_API_KEY in Netlify." }, 500);
+    const conv = messages.map((m) => {
+      if (typeof m.content === "string") return { role: m.role, content: m.content };
+      return { role: m.role, content: m.content.map((c) => c.type === "image" ? { type: "image_url", image_url: { url: `data:${c.source.media_type};base64,${c.source.data}` } } : { type: "text", text: c.text }) };
+    });
+    const up = await fetch("https://api.x.ai/v1/chat/completions", {
+      method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + key },
+      body: JSON.stringify({ model: env("XAI_MODEL") || "grok-4", stream: true, max_tokens: maxTokens, messages: [{ role: "system", content: system }, ...conv] }),
+    });
+    if (!up.ok) { const e = await up.json().catch(() => ({})); return J({ error: (typeof e.error === "string" ? e.error : e.error && e.error.message) || "Grok request failed" }, 502); }
+    return relay(up.body, pickGrok);
+  }
+
+  const key = env("ANTHROPIC_API_KEY");
+  if (!key) return J({ error: "Claude is not connected yet. Add ANTHROPIC_API_KEY in Netlify." }, 500);
+  const body = {
+    model: premium ? (env("CLAUDE_MODEL_PREMIUM") || "claude-sonnet-5-5") : (env("CLAUDE_MODEL_FREE") || "claude-haiku-5-5"),
+    max_tokens: maxTokens, stream: true, system, messages,
+  };
+  if (claudeSearch) body.tools = [{ type: "web_search_20250305", name: "web_search", max_uses: 3 }];
+  const call = () => fetch("https://api.anthropic.com/v1/messages", {
+    method: "POST", headers: { "Content-Type": "application/json", "x-api-key": key, "anthropic-version": "2023-06-01" }, body: JSON.stringify(body),
+  });
+  let up = await call();
+  if (!up.ok && body.tools) { delete body.tools; up = await call(); }
+  if (!up.ok) { const e = await up.json().catch(() => ({})); return J({ error: (e.error && e.error.message) || "Claude request failed" }, 502); }
+  return relay(up.body, pickClaude);
+};
+
+export const config = { path: "/api/chat" };
+</script>
+<script type="text/plain" id="raw-image">
+// VELTEX AI image server (Netlify Edge Function) at /api/image
+// Uses xAI (Grok) image generation. Add XAI_API_KEY in Netlify (Environment variables).
+// Optional: XAI_IMAGE_MODEL, ALLOWED_ORIGINS
+
+const J = (o, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { "Content-Type": "application/json" } });
+const env = (k) => Deno.env.get(k) || "";
+
+export default async (req) => {
+  if (req.method !== "POST") return J({ error: "Use POST" }, 405);
+  const origin = req.headers.get("origin") || "";
+  if (origin) {
+    let host = ""; try { host = new URL(origin).hostname; } catch {}
+    const extra = env("ALLOWED_ORIGINS").split(",").map((x) => x.trim()).filter(Boolean);
+    if (!(origin === env("URL") || host.endsWith(".netlify.app") || host === "localhost" || extra.includes(origin))) return J({ error: "Not allowed" }, 403);
+  }
+  let b; try { b = await req.json(); } catch { return J({ error: "Bad request" }, 400); }
+  const prompt = String(b.prompt || "").slice(0, 1000).trim();
+  if (!prompt) return J({ error: "Describe the image you want." }, 400);
+  const key = env("XAI_API_KEY");
+  if (!key) return J({ error: "Image creation is not connected yet. Add XAI_API_KEY in Netlify." }, 500);
+
+  const r = await fetch("https://api.x.ai/v1/images/generations", {
+    method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + key },
+    body: JSON.stringify({ model: env("XAI_IMAGE_MODEL") || "grok-2-image", prompt, n: 1, response_format: "b64_json" }),
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) return J({ error: (typeof d.error === "string" ? d.error : d.error && d.error.message) || "Image request failed" }, 502);
+  const img = d.data && d.data[0] && d.data[0].b64_json;
+  if (!img) return J({ error: "No image was returned. Try different words." }, 502);
+  return J({ url: "data:image/jpeg;base64," + img });
+};
+
+export const config = { path: "/api/image" };
+</script>
+<script type="text/plain" id="raw-video">
+// VELTEX AI video server (Netlify Edge Function) at /api/video
+// Uses Luma Dream Machine. Add LUMA_API_KEY in Netlify (Environment variables).
+// Optional: LUMA_MODEL (default ray-2), ALLOWED_ORIGINS
+// The app calls this twice per clip: action "start" (begin), then "status" (poll until done).
+
+const J = (o, s = 200) => new Response(JSON.stringify(o), { status: s, headers: { "Content-Type": "application/json" } });
+const env = (k) => Deno.env.get(k) || "";
+const msg = (d, fallback) => { const e = d && (d.detail || d.error || d.message); return typeof e === "string" ? e : e ? JSON.stringify(e).slice(0, 200) : fallback; };
+
+export default async (req) => {
+  if (req.method !== "POST") return J({ error: "Use POST" }, 405);
+  const origin = req.headers.get("origin") || "";
+  if (origin) {
+    let host = ""; try { host = new URL(origin).hostname; } catch {}
+    const extra = env("ALLOWED_ORIGINS").split(",").map((x) => x.trim()).filter(Boolean);
+    if (!(origin === env("URL") || host.endsWith(".netlify.app") || host === "localhost" || extra.includes(origin))) return J({ error: "Not allowed" }, 403);
+  }
+  let b; try { b = await req.json(); } catch { return J({ error: "Bad request" }, 400); }
+  const key = env("LUMA_API_KEY");
+  if (!key) return J({ error: "Video creation is not connected yet. Add LUMA_API_KEY in Netlify." }, 500);
+
+  const base = "https://api.lumalabs.ai/dream-machine/v1/generations";
+  const hdr = { Authorization: "Bearer " + key, "Content-Type": "application/json", accept: "application/json" };
+
+  if (b.action === "start") {
+    const prompt = String(b.prompt || "").slice(0, 1500).trim();
+    if (!prompt) return J({ error: "Describe the video you want." }, 400);
+    const r = await fetch(base, { method: "POST", headers: hdr, body: JSON.stringify({ prompt, model: env("LUMA_MODEL") || "ray-2", resolution: "720p", duration: "5s", aspect_ratio: "16:9" }) });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || !d.id) return J({ error: msg(d, "Video request failed") }, 502);
+    return J({ id: d.id });
+  }
+
+  if (b.action === "status") {
+    const id = String(b.id || "");
+    if (!/^[\w-]{8,64}$/.test(id)) return J({ error: "Bad id" }, 400);
+    const r = await fetch(base + "/" + id, { headers: hdr });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok) return J({ error: msg(d, "Video status failed") }, 502);
+    if (d.state === "completed") return d.assets && d.assets.video ? J({ state: "completed", url: d.assets.video }) : J({ error: "The video finished but no file came back." }, 502);
+    if (d.state === "failed") return J({ state: "failed", error: d.failure_reason || "The video failed. Try different words." });
+    return J({ state: d.state || "working" });
+  }
+  return J({ error: "Bad request" }, 400);
+};
+
+export const config = { path: "/api/video" };
+</script>
+<script>
+addEventListener("DOMContentLoaded", () => {
+  for (const k of ["toml", "chat", "image", "video"]) $("#src-" + k).value = document.getElementById("raw-" + k).textContent.trim();
+  $$("[data-copysrc]").forEach(b => b.onclick = () => { navigator.clipboard.writeText($("#src-" + b.dataset.copysrc).value); toast("Copied. Paste it into the new GitHub file."); });
+});
+</script>
 </body>
 </html>
